@@ -173,6 +173,111 @@ static void hfpSetAgIndValues(char *features);
 static void hfpInitAgInd();
 static void hfpInitSlc();
 
+/*! events from bluez and events for statemachine map */
+typedef struct {
+    char *cmd;    
+    int event;
+    void (*agRespHandler) (char *params);
+}hfpEventBufMap;
+
+/*!
+ * HFP States
+ */
+typedef enum 
+{
+    HFP_INIT =0,
+    ESTABLISH_SLC,
+    ESTABLISH_AUDIO,
+    SCO_CONNECTED
+}hfpStates;
+
+/*!
+    * stae machine struct 
+*/
+typedef struct
+{
+    int event;
+    int nextState;
+    char *cmd;
+    char *params;
+    int (*fn)(char *cmd, int fd, char *cmd_buf, char * params, int event);
+}hfpStateTable;
+
+typedef struct
+{
+    hfpStateTable *state;
+}hfpSm;
+
+typedef struct 
+{
+    int currentState;
+}hfStateInfo;
+
+
+typedef enum
+{
+    HF_INIT_EVENT = 0,
+    AT_BRSF = 0,
+    BRSF_   = 0,
+    BRSF_OK,
+    AT_BAC,
+    AT_BAC_OK,
+    AT_CIND,
+    CIND,
+    AT_CIND_OK,
+    AT_CIND_VAL_CMD,
+    AT_CIND_VAL,
+    AT_CIND_VAL_OK,
+    AT_CMER,
+    AT_CMER_OK,
+    AT_CHLD,
+    CHLD,
+    CHLD_OK,
+    AT_BCC,
+    AT_BCC_OK,
+    BCS_,
+    AT_BCS,
+    AT_BCS_OK,
+    BTRH,
+    BSIR,
+    BVRA,
+    CIEV,
+    RING,
+    MAX_EVENTS
+}hfpEvents;
+
+    /* cmd          event               handler*/
+hfpEventBufMap hfp_map [] =
+{
+    {"+BRSF"       ,BRSF_,              NULL},
+    {"OK"          ,BRSF_OK,            NULL},
+    {"AT+BAC="     ,AT_BAC,             NULL},
+    {"OK"          ,AT_BAC_OK,          NULL},
+    {"AT+CIND=?\r" ,AT_CIND,            NULL},
+    {"+CIND"       ,CIND,               NULL},
+    {"OK"          ,AT_CIND_OK,         NULL},
+    {"AT+CIND?\r"  ,AT_CIND_VAL_CMD,    NULL},
+    {"+CIND"       ,AT_CIND_VAL,        NULL},
+    {"OK"          ,AT_CIND_VAL_OK,     NULL},
+    {"AT+CMER="    ,AT_CMER,            NULL},
+    {"OK"          ,AT_CMER_OK,         NULL},
+    {"AT+CHLD=?\r" ,AT_CHLD,            NULL},
+    {"+CHLD"       ,CHLD,               NULL},
+    {"OK"          ,CHLD_OK,            NULL},
+    {"AT+BCC\r"    ,AT_BCC,             NULL},
+    {"OK"          ,AT_BCC_OK,          NULL},
+    {"+BCS"        ,BCS_,               NULL},
+    {"AT+BCS="     ,AT_BCS,             NULL},
+    {"OK"          ,AT_BCS_OK,          NULL},
+    {"+BTRH"       ,BTRH,               NULL},
+    {"+BSIR"       ,BSIR,               NULL},
+    {"+BVRA"       ,BVRA,               NULL},
+    {"+CIEV"       ,CIEV,               NULL},
+    {"RING"        ,RING,               NULL},
+};
+
+
+
 /*
  * Function to initialize all HF variables to default values. 
  * @param  : NONE
@@ -290,106 +395,3 @@ gboolean hfpProfileRegister (GDBusProxy *dBusProxy, GDBusObjectManagerServer *dB
     hFpInitSlc();
     return TRUE;
 }
-/*! events from bluez and events for statemachine map */
-typedef struct {
-    char *cmd;    
-    int event;
-    void (*agRespHandler) (char *params);
-}hfpEventBufMap;
-
-/*!
- * HFP States
- */
-typedef enum 
-{
-    HFP_INIT =0,
-    ESTABLISH_SLC,
-    ESTABLISH_AUDIO,
-    SCO_CONNECTED
-}hfpStates;
-
-/*!
-    * stae machine struct 
-*/
-typedef struct
-{
-    int event;
-    int nextState;
-    char *cmd;
-    char *params;
-    int (*fn)(char *cmd, int fd, char *cmd_buf, char * params, int event);
-}hfpStateTable;
-
-typedef struct
-{
-    hfpStateTable *state;
-}hfpSm;
-
-typedef struct 
-{
-    int currentState;
-}hfStateInfo;
-
-
-typedef enum
-{
-    HF_INIT_EVENT = 0,
-    AT_BRSF = 0,
-    BRSF_   = 0,
-    BRSF_OK,
-    AT_BAC,
-    AT_BAC_OK,
-    AT_CIND,
-    CIND,
-    AT_CIND_OK,
-    AT_CIND_VAL_CMD,
-    AT_CIND_VAL,
-    AT_CIND_VAL_OK,
-    AT_CMER,
-    AT_CMER_OK,
-    AT_CHLD,
-    CHLD,
-    CHLD_OK,
-    AT_BCC,
-    AT_BCC_OK,
-    BCS_,
-    AT_BCS,
-    AT_BCS_OK,
-    BTRH,
-    BSIR,
-    BVRA,
-    CIEV,
-    RING,
-    MAX_EVENTS
-}hfpEvents;
-
-    /* cmd          event               handler*/
-hfpEventBufMap hfp_map [] =
-{
-    {"+BRSF"       ,BRSF_,              NULL},
-    {"OK"          ,BRSF_OK,            NULL},
-    {"AT+BAC="     ,AT_BAC,             NULL},
-    {"OK"          ,AT_BAC_OK,          NULL},
-    {"AT+CIND=?\r" ,AT_CIND,            NULL},
-    {"+CIND"       ,CIND,               NULL},
-    {"OK"          ,AT_CIND_OK,         NULL},
-    {"AT+CIND?\r"  ,AT_CIND_VAL_CMD,    NULL},
-    {"+CIND"       ,AT_CIND_VAL,        NULL},
-    {"OK"          ,AT_CIND_VAL_OK,     NULL},
-    {"AT+CMER="    ,AT_CMER,            NULL},
-    {"OK"          ,AT_CMER_OK,         NULL},
-    {"AT+CHLD=?\r" ,AT_CHLD,            NULL},
-    {"+CHLD"       ,CHLD,               NULL},
-    {"OK"          ,CHLD_OK,            NULL},
-    {"AT+BCC\r"    ,AT_BCC,             NULL},
-    {"OK"          ,AT_BCC_OK,          NULL},
-    {"+BCS"        ,BCS_,               NULL},
-    {"AT+BCS="     ,AT_BCS,             NULL},
-    {"OK"          ,AT_BCS_OK,          NULL},
-    {"+BTRH"       ,BTRH,               NULL},
-    {"+BSIR"       ,BSIR,               NULL},
-    {"+BVRA"       ,BVRA,               NULL},
-    {"+CIEV"       ,CIEV,               NULL},
-    {"RING"        ,RING,               NULL},
-};
-
